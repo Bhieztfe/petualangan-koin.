@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172043">
+  <title>Petualangan Koin</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #10172f;
+      color: #fff8df;
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      background:
+        radial-gradient(ellipse at 50% -20%, #414b82 0, transparent 60%),
+        #10172f;
+    }
+
+    button { font: inherit; }
+
+    .app {
+      width: min(100%, 980px);
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 auto 14px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #ffe28c;
+      font-size: clamp(1.25rem, 4vw, 2rem);
+      letter-spacing: .04em;
+    }
+
+    .subtitle { margin: 3px 0 0; color: #d3d9f3; font-size: .9rem; }
+
+    .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+    .panel {
+      border: 1px solid #59658f;
+      border-radius: 20px;
+      background: rgb(25 34 68 / 94%);
+      box-shadow: 0 18px 50px rgb(0 0 0 / 25%);
+      padding: clamp(14px, 3vw, 24px);
+    }
+
+    .season {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 14px;
+      background: #222d55;
+    }
+
+    .season-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0 0 10px;
+      font-size: 1.08rem;
+    }
+
+    .difficulty {
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #34446f;
+      color: #ffe28c;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .mission-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mission-card, .primary, .secondary, .touch-button {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .12s ease, filter .12s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .mission-card {
+      min-height: 74px;
+      padding: 10px;
+      background: #35436f;
+      color: #fff8df;
+      text-align: left;
+    }
+
+    .mission-card small { display: block; margin-top: 4px; color: #c5cce6; }
+    .mission-card:disabled { cursor: not-allowed; opacity: .48; }
+    .mission-card:not(:disabled):hover, .primary:hover, .secondary:hover { filter: brightness(1.1); }
+    .mission-card:not(:disabled):active, .primary:active, .secondary:active, .touch-button:active { transform: scale(.97); }
+    .mission-card.current { outline: 2px solid #ffe28c; }
+
+    .primary, .secondary {
+      min-height: 44px;
+      padding: 10px 16px;
+    }
+
+    .primary { background: #ffcf69; color: #302544; }
+    .secondary { background: #edf1ff; color: #242b4c; }
+
+    .game-panel { padding: clamp(8px, 2vw, 16px); }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0 2px 10px;
+      color: #e5e9ff;
+      font-size: .92rem;
+    }
+
+    .hud strong { color: #ffe28c; }
+
+    .canvas-wrap {
+      overflow: hidden;
+      border: 2px solid #d5f8ff;
+      border-radius: 12px;
+      background: #252e5b;
+      line-height: 0;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      touch-action: none;
+    }
+
+    .instructions {
+      margin: 10px 4px 0;
+      color: #d3d9f3;
+      font-size: .88rem;
+      text-align: center;
+    }
+
+    .touch-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 12px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .touch-group { display: flex; gap: 10px; }
+
+    .touch-button {
+      min-width: 62px;
+      min-height: 54px;
+      padding: 10px 14px;
+      background: #35436f;
+      color: #fff8df;
+      font-size: 1.25rem;
+      touch-action: none;
+    }
+
+    .touch-button.jump {
+      min-width: 116px;
+      background: #ffcf69;
+      color: #302544;
+      font-size: 1rem;
+    }
+
+    .overlay {
+      position: fixed;
+      z-index: 3;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgb(8 12 28 / 72%);
+    }
+
+    .overlay-card {
+      width: min(100%, 380px);
+      border: 1px solid #7280aa;
+      border-radius: 20px;
+      padding: 24px;
+      background: #202b54;
+      text-align: center;
+      box-shadow: 0 20px 70px rgb(0 0 0 / 40%);
+    }
+
+    .overlay-card h2 { margin: 0 0 8px; color: #ffe28c; }
+    .overlay-card p { margin: 0 0 18px; color: #e0e5f8; line-height: 1.5; }
+    .overlay-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 560px) {
+      body { padding-right: 10px; padding-left: 10px; }
+      .mission-list { grid-template-columns: 1fr; }
+      .mission-card { min-height: 58px; }
+      .subtitle { font-size: .78rem; }
+      .hud { font-size: .8rem; }
+      .touch-controls { justify-content: space-between; gap: 6px; }
+      .touch-group { gap: 6px; }
+      .touch-button { min-width: 54px; min-height: 52px; padding: 8px; }
+      .touch-button.jump { min-width: 96px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Petualangan Koin</h1>
+        <p class="subtitle">Jelajahi season, kumpulkan koin, dan buka semua misi!</p>
+      </div>
+      <div class="header-actions">
+        <button id="musicButton" class="secondary" type="button" aria-pressed="false">♫ Musik: Mati</button>
+        <button id="menuButton" class="secondary hidden" type="button">Pilih misi</button>
+      </div>
+    </header>
+
+    <section id="campaign" class="panel" aria-labelledby="campaignTitle">
+      <h2 id="campaignTitle">Pilih misi</h2>
+      <p>Gunakan tombol di layar untuk bermain di HP, atau tombol panah dan spasi di komputer.</p>
+      <div id="seasonList"></div>
+    </section>
+
+    <section id="gamePanel" class="panel game-panel hidden" aria-label="Permainan">
+      <div class="hud">
+        <span id="missionLabel"></span>
+        <span>Koin: <strong id="coinCount">0/0</strong></span>
+        <span>Nyawa: <strong id="lifeCount">♥ ♥ ♥</strong></span>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="960" height="540" aria-label="Area permainan"></canvas>
+      </div>
+      <p class="instructions">Kumpulkan semua koin lalu capai pintu keluar.</p>
+      <div class="touch-controls" aria-label="Kontrol sentuh">
+        <div class="touch-group">
+          <button class="touch-button" type="button" data-key="left" aria-label="Bergerak ke kiri">◀</button>
+          <button class="touch-button" type="button" data-key="right" aria-label="Bergerak ke kanan">▶</button>
+        </div>
+        <button class="touch-button jump" type="button" data-key="jump">LOMPAT ⤒</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+    <div class="overlay-card">
+      <h2 id="overlayTitle">Misi selesai!</h2>
+      <p id="overlayText"></p>
+      <div class="overlay-actions">
+        <button id="nextButton" class="primary" type="button">Misi berikutnya</button>
+        <button id="retryButton" class="secondary" type="button">Ulangi misi</button>
+        <button id="overlayMenuButton" class="secondary" type="button">Menu misi</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const WIDTH = 960;
+    const HEIGHT = 540;
+    const FLOOR = 470;
+    const PLAYER_WIDTH = 32;
+    const PLAYER_HEIGHT = 42;
+    const STORAGE_KEY = "petualangan-koin-unlocked-v1";
+
+    const seasons = [
+      { name: "Season 1 · Hutan Ceria", difficulty: "MUDAH", sky: ["#354579", "#8cc8d8"], hills: "#4d7b82", ground: "#32805f", grass: "#8bd37c" },
+      { name: "Season 2 · Gua Kristal", difficulty: "SEDANG", sky: ["#302f70", "#b186d0"], hills: "#625b91", ground: "#586084", grass: "#b1a4e7" },
+      { name: "Season 3 · Pulau Lava", difficulty: "SULIT", sky: ["#762f48", "#f0a563"], hills: "#9b4e52", ground: "#6d4250", grass: "#e5aa5e" },
+    ];
+
+    const missions = [
+      { name: "Jejak Pertama", season: 0, width: 1000, coins: [[190, 420], [430, 315], [730, 405]], platforms: [[145, 385, 130], [365, 340, 130], [620, 395, 135], [815, 350, 110]], hazards: [] },
+      { name: "Jembatan Daun", season: 0, width: 1120, coins: [[180, 420], [390, 350], [650, 300], [930, 390]], platforms: [[270, 395, 125], [500, 355, 130], [750, 390, 130], [920, 340, 115]], hazards: [[435, 34]] },
+      { name: "Puncak Hutan", season: 0, width: 1200, coins: [[160, 420], [365, 325], [590, 395], [820, 315], [1060, 400]], platforms: [[250, 390, 130], [470, 345, 135], [700, 390, 130], [930, 345, 130]], hazards: [[430, 34], [780, 34]] },
+      { name: "Gua Berkilau", season: 1, width: 1240, coins: [[170, 415], [390, 335], [610, 285], [850, 370], [1090, 410]], platforms: [[270, 390, 130], [500, 345, 130], [740, 390, 140], [960, 345, 130]], hazards: [[445, 36], [900, 36]] },
+      { name: "Lorong Kristal", season: 1, width: 1350, coins: [[165, 415], [380, 330], [590, 395], [820, 300], [1040, 365], [1220, 410]], platforms: [[260, 390, 130], [490, 345, 130], [720, 390, 140], [940, 340, 130], [1130, 390, 120]], hazards: [[440, 36], [680, 36], [1010, 36]] },
+      { name: "Danau Cahaya", season: 1, width: 1420, coins: [[170, 415], [390, 320], [610, 390], [830, 285], [1060, 360], [1280, 405]], platforms: [[270, 385, 130], [500, 340, 135], [730, 390, 140], [960, 335, 135], [1180, 385, 120]], hazards: [[440, 36], [700, 36], [930, 36], [1160, 36]] },
+      { name: "Pantai Bara", season: 2, width: 1440, coins: [[160, 415], [370, 325], [580, 390], [800, 285], [1030, 355], [1290, 405]], platforms: [[250, 390, 130], [470, 340, 135], [690, 390, 140], [920, 335, 135], [1150, 385, 130]], hazards: [[420, 40], [650, 40], [900, 40], [1130, 40]] },
+      { name: "Jalur Magma", season: 2, width: 1540, coins: [[160, 415], [365, 320], [570, 385], [780, 280], [990, 350], [1200, 305], [1400, 405]], platforms: [[245, 390, 130], [455, 340, 135], [670, 390, 135], [880, 335, 140], [1100, 380, 135], [1320, 340, 120]], hazards: [[420, 40], [635, 40], [850, 40], [1070, 40], [1290, 40]] },
+      { name: "Puncak Gunung Api", season: 2, width: 1650, coins: [[160, 415], [365, 320], [570, 385], [780, 280], [990, 350], [1200, 290], [1410, 350], [1550, 410]], platforms: [[245, 390, 130], [455, 340, 135], [670, 390, 135], [880, 335, 140], [1100, 380, 135], [1320, 335, 135], [1500, 385, 100]], hazards: [[420, 40], [635, 40], [850, 40], [1070, 40], [1290, 40], [1480, 40]] },
+    ];
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const campaign = document.getElementById("campaign");
+    const gamePanel = document.getElementById("gamePanel");
+    const seasonList = document.getElementById("seasonList");
+    const overlay = document.getElementById("overlay");
+    const menuButton = document.getElementById("menuButton");
+    const coinCount = document.getElementById("coinCount");
+    const lifeCount = document.getElementById("lifeCount");
+    const missionLabel = document.getElementById("missionLabel");
+    const heldKeys = new Set();
+    let unlocked = 1;
+    let activeMission = 0;
+    let player;
+    let coins = [];
+    let lives = 3;
+    let cameraX = 0;
+    let running = false;
+    let lastFrame = 0;
+    let invulnerableUntil = 0;
+    let statusMessage = "";
+    let statusUntil = 0;
+    let audioContext = null;
+    let musicMaster = null;
+    let musicTimer = null;
+    let musicStep = 0;
+    let musicEnabled = false;
+    const melody = [
+      523.25, 659.25, 783.99, 659.25, 587.33, 659.25, 523.25, 392.00,
+      440.00, 523.25, 659.25, 523.25, 440.00, 392.00, 440.00, 523.25,
+    ];
+
+    try {
+      const saved = Number(localStorage.getItem(STORAGE_KEY));
+      if (Number.isInteger(saved) && saved >= 1 && saved <= missions.length) unlocked = saved;
+    } catch (error) {
+      console.warn("Progres tidak bisa dibaca dari penyimpanan browser.", error);
+    }
+
+    function renderCampaign() {
+      seasonList.replaceChildren();
+      seasons.forEach((season, seasonIndex) => {
+        const section = document.createElement("section");
+        section.className = "season";
+        const heading = document.createElement("h3");
+        heading.className = "season-heading";
+        heading.textContent = season.name;
+        const badge = document.createElement("span");
+        badge.className = "difficulty";
+        badge.textContent = season.difficulty;
+        heading.append(badge);
+        const list = document.createElement("div");
+        list.className = "mission-list";
+
+        missions.forEach((mission, index) => {
+          if (mission.season !== seasonIndex) return;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "mission-card";
+          button.disabled = index >= unlocked;
+          button.innerHTML = `${index < unlocked ? "▶" : "🔒"} Misi ${index + 1}: ${mission.name}<small>${mission.coins.length} koin · ${button.disabled ? "Terkunci" : "Siap dimainkan"}</small>`;
+          button.addEventListener("click", () => startMission(index));
+          list.append(button);
+        });
+
+        section.append(heading, list);
+        seasonList.append(section);
+      });
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem(STORAGE_KEY, String(unlocked));
+      } catch (error) {
+        console.warn("Progres tidak bisa disimpan di browser ini.", error);
+      }
+    }
+
+    function startMission(index) {
+      if (index < 0 || index >= unlocked) return;
+      activeMission = index;
+      const mission = missions[index];
+      player = {
+        x: 54,
+        y: FLOOR - PLAYER_HEIGHT,
+        vy: 0,
+        onGround: true,
+      };
+      coins = mission.coins.map(([x, y]) => ({ x, y, collected: false }));
+      lives = 3;
+      cameraX = 0;
+      invulnerableUntil = 0;
+      statusMessage = "";
+      heldKeys.clear();
+      missionLabel.textContent = `${seasons[mission.season].name} · Misi ${index + 1}: ${mission.name}`;
+      campaign.classList.add("hidden");
+      gamePanel.classList.remove("hidden");
+      menuButton.classList.remove("hidden");
+      overlay.classList.add("hidden");
+      document.getElementById("retryButton").classList.remove("hidden");
+      running = true;
+      refreshHud();
+      canvas.focus();
+    }
+
+    function showMenu() {
+      running = false;
+      heldKeys.clear();
+      gamePanel.classList.add("hidden");
+      campaign.classList.remove("hidden");
+      menuButton.classList.add("hidden");
+      overlay.classList.add("hidden");
+      renderCampaign();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function refreshHud() {
+      coinCount.textContent = `${coins.filter((coin) => coin.collected).length}/${coins.length}`;
+      lifeCount.textContent = `${"♥ ".repeat(lives).trim()}${lives ? "" : "0"}`;
+    }
+
+    function setStatus(message, duration = 1800) {
+      statusMessage = message;
+      statusUntil = performance.now() + duration;
+    }
+
+    function playMusicNote() {
+      if (!audioContext || !musicMaster || !musicEnabled) return;
+      const now = audioContext.currentTime;
+      const frequency = melody[musicStep % melody.length];
+      const note = audioContext.createOscillator();
+      const envelope = audioContext.createGain();
+      note.type = "sine";
+      note.frequency.setValueAtTime(frequency, now);
+      envelope.gain.setValueAtTime(0.0001, now);
+      envelope.gain.exponentialRampToValueAtTime(0.55, now + 0.025);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+      note.connect(envelope);
+      envelope.connect(musicMaster);
+      note.start(now);
+      note.stop(now + 0.27);
+
+      if (musicStep % 4 === 0) {
+        const bass = audioContext.createOscillator();
+        const bassEnvelope = audioContext.createGain();
+        bass.type = "triangle";
+        bass.frequency.setValueAtTime(frequency / 2, now);
+        bassEnvelope.gain.setValueAtTime(0.0001, now);
+        bassEnvelope.gain.exponentialRampToValueAtTime(0.2, now + 0.04);
+        bassEnvelope.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+        bass.connect(bassEnvelope);
+        bassEnvelope.connect(musicMaster);
+        bass.start(now);
+        bass.stop(now + 0.43);
+      }
+
+      musicStep += 1;
+    }
+
+    async function setMusicEnabled(enabled) {
+      const button = document.getElementById("musicButton");
+      if (!enabled) {
+        musicEnabled = false;
+        window.clearInterval(musicTimer);
+        musicTimer = null;
+        button.textContent = "♫ Musik: Mati";
+        button.setAttribute("aria-pressed", "false");
+        if (audioContext && musicMaster && audioContext.state === "running") {
+          musicMaster.gain.setTargetAtTime(0, audioContext.currentTime, 0.04);
+          window.setTimeout(() => {
+            if (!musicEnabled && audioContext.state === "running") audioContext.suspend();
+          }, 250);
+        }
+        return;
+      }
+
+      try {
+        if (!window.AudioContext) throw new Error("Browser ini belum mendukung Web Audio.");
+        if (!audioContext) {
+          audioContext = new window.AudioContext();
+          musicMaster = audioContext.createGain();
+          musicMaster.gain.value = 0;
+          musicMaster.connect(audioContext.destination);
+        }
+        await audioContext.resume();
+        musicMaster.gain.setTargetAtTime(0.18, audioContext.currentTime, 0.04);
+        musicEnabled = true;
+        musicStep = 0;
+        playMusicNote();
+        musicTimer = window.setInterval(playMusicNote, 300);
+        button.textContent = "♫ Musik: Nyala";
+        button.setAttribute("aria-pressed", "true");
+      } catch (error) {
+        musicEnabled = false;
+        button.textContent = "♫ Musik: Mati";
+        button.setAttribute("aria-pressed", "false");
+        console.error("Musik tidak dapat diputar.", error);
+        setStatus("Musik tidak didukung browser ini.");
+      }
+    }
+
+    function finishMission() {
+      running = false;
+      const next = activeMission + 1;
+      if (next < missions.length && unlocked < next + 1) {
+        unlocked = next + 1;
+        saveProgress();
+      }
+      document.getElementById("overlayTitle").textContent = "Misi selesai!";
+      document.getElementById("overlayText").textContent =
+        next < missions.length
+          ? `Hebat! Kamu menuntaskan ${missions[activeMission].name}. Misi berikutnya sudah terbuka.`
+          : "Luar biasa! Semua season dan misi sudah kamu selesaikan.";
+      const nextButton = document.getElementById("nextButton");
+      nextButton.classList.toggle("hidden", next >= missions.length);
+      nextButton.onclick = () => startMission(next);
+      document.getElementById("retryButton").classList.remove("hidden");
+      overlay.classList.remove("hidden");
+      renderCampaign();
+    }
+
+    function loseLife(now) {
+      if (now < invulnerableUntil) return;
+      lives -= 1;
+      invulnerableUntil = now + 1300;
+      player.x = Math.max(54, player.x - 100);
+      player.y = FLOOR - PLAYER_HEIGHT;
+      player.vy = 0;
+      player.onGround = true;
+      refreshHud();
+      if (lives <= 0) {
+        running = false;
+        document.getElementById("overlayTitle").textContent = "Coba lagi!";
+        document.getElementById("overlayText").textContent = "Nyawamu habis. Ulangi misi dan hindari duri.";
+        document.getElementById("nextButton").classList.add("hidden");
+        document.getElementById("retryButton").classList.remove("hidden");
+        overlay.classList.remove("hidden");
+      } else {
+        setStatus("Awas duri! Nyawa berkurang.");
+      }
+    }
+
+    function update(delta, now) {
+      const mission = missions[activeMission];
+      const speed = 300 + mission.season * 15;
+      if (heldKeys.has("left")) player.x -= speed * delta;
+      if (heldKeys.has("right")) player.x += speed * delta;
+      player.x = Math.max(PLAYER_WIDTH / 2, Math.min(mission.width - 18, player.x));
+
+      const oldBottom = player.y + PLAYER_HEIGHT;
+      player.vy += 1500 * delta;
+      player.y += player.vy * delta;
+      player.onGround = false;
+      const platforms = [[0, FLOOR, mission.width], ...mission.platforms];
+      if (player.vy >= 0) {
+        for (const [x, top, width] of platforms) {
+          const overlaps = player.x + PLAYER_WIDTH / 2 > x && player.x - PLAYER_WIDTH / 2 < x + width;
+          if (oldBottom <= top && player.y + PLAYER_HEIGHT >= top && overlaps) {
+            player.y = top - PLAYER_HEIGHT;
+            player.vy = 0;
+            player.onGround = true;
+            break;
+          }
+        }
+      }
+
+      for (const coin of coins) {
+        if (!coin.collected && Math.hypot(player.x - coin.x, player.y + PLAYER_HEIGHT / 2 - coin.y) < 50) {
+          coin.collected = true;
+          refreshHud();
+          setStatus("Koin ditemukan!");
+        }
+      }
+
+      for (const [x, width] of mission.hazards) {
+        const overlaps = player.x + PLAYER_WIDTH / 2 > x && player.x - PLAYER_WIDTH / 2 < x + width;
+        if (overlaps && player.y + PLAYER_HEIGHT > FLOOR - 28) {
+          loseLife(now);
+          break;
+        }
+      }
+      if (!running) return;
+
+      if (player.x > mission.width - 62) {
+        if (coins.every((coin) => coin.collected)) finishMission();
+        else setStatus("Pintu terkunci. Kumpulkan semua koin dulu.", 1400);
+      }
+
+      const collected = coins.filter((coin) => coin.collected).length;
+      const targetCamera = Math.max(0, Math.min(mission.width - WIDTH, player.x - WIDTH * .36));
+      cameraX += (targetCamera - cameraX) * Math.min(1, delta * 8);
+      if (collected === coins.length && statusMessage !== "Semua koin terkumpul! Cari pintu keluar.") {
+        setStatus("Semua koin terkumpul! Cari pintu keluar.", 1000000000);
+      }
+      if (statusMessage && now > statusUntil) statusMessage = "";
+    }
+
+    function draw() {
+      const mission = missions[activeMission];
+      const season = seasons[mission.season];
+      const camera = cameraX;
+      const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+      sky.addColorStop(0, season.sky[0]);
+      sky.addColorStop(1, season.sky[1]);
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+      ctx.fillStyle = season.hills;
+      for (let i = -1; i < 7; i++) {
+        const x = i * 190 - (camera * .22 % 190);
+        ctx.beginPath();
+        ctx.ellipse(x + 95, 365, 150, 100 + (i % 3) * 12, 0, Math.PI, 0);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = season.ground;
+      ctx.fillRect(-camera, FLOOR, mission.width, HEIGHT - FLOOR);
+      ctx.fillStyle = season.grass;
+      ctx.fillRect(-camera, FLOOR, mission.width, 12);
+
+      for (const [x, top, width] of mission.platforms) {
+        ctx.fillStyle = "#493e66";
+        ctx.fillRect(x - camera, top + 8, width, 18);
+        ctx.fillStyle = season.grass;
+        ctx.fillRect(x - camera, top, width, 10);
+      }
+
+      for (const [x, width] of mission.hazards) {
+        ctx.fillStyle = "#342c40";
+        const count = Math.max(2, Math.floor(width / 12));
+        for (let i = 0; i < count; i++) {
+          const spikeX = x - camera + i * (width / count);
+          ctx.beginPath();
+          ctx.moveTo(spikeX, FLOOR);
+          ctx.lineTo(spikeX + width / count / 2, FLOOR - 26);
+          ctx.lineTo(spikeX + width / count, FLOOR);
+          ctx.fill();
+        }
+      }
+
+      const time = performance.now() / 1000;
+      for (const [index, coin] of coins.entries()) {
+        if (coin.collected) continue;
+        const x = coin.x - camera;
+        const y = coin.y + Math.sin(time * 3 + index) * 4;
+        ctx.fillStyle = "#ffc94f";
+        ctx.beginPath();
+        ctx.arc(x, y, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fff2ae";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "#fff8d8";
+        ctx.fillRect(x - 3, y - 7, 3, 7);
+      }
+
+      const exitX = mission.width - 60 - camera;
+      ctx.fillStyle = coins.every((coin) => coin.collected) ? "#78d98c" : "#b7bfd8";
+      ctx.fillRect(exitX - 18, FLOOR - 68, 36, 68);
+      ctx.fillStyle = "#263353";
+      ctx.fillRect(exitX - 10, FLOOR - 52, 20, 52);
+      ctx.fillStyle = "#ffe28c";
+      ctx.beginPath();
+      ctx.arc(exitX + 5, FLOOR - 28, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      const px = player.x - camera;
+      if (time * 1000 > invulnerableUntil || Math.floor(time * 12) % 2 === 0) {
+        ctx.fillStyle = "#42b7ad";
+        ctx.beginPath();
+        ctx.roundRect(px - PLAYER_WIDTH / 2, player.y, PLAYER_WIDTH, PLAYER_HEIGHT, 10);
+        ctx.fill();
+        ctx.fillStyle = "#d6fff0";
+        ctx.beginPath();
+        ctx.arc(px - 6, player.y + 13, 4, 0, Math.PI * 2);
+        ctx.arc(px + 7, player.y + 13, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#263353";
+        ctx.beginPath();
+        ctx.arc(px - 5, player.y + 14, 1.8, 0, Math.PI * 2);
+        ctx.arc(px + 8, player.y + 14, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#753e58";
+        ctx.fillRect(px - 4, player.y + 24, 9, 3);
+      }
+
+      ctx.fillStyle = "rgb(16 23 47 / 70%)";
+      ctx.fillRect(14, 14, 250, 42);
+      ctx.fillStyle = "#fff8df";
+      ctx.font = "bold 18px system-ui, sans-serif";
+      ctx.fillText(statusMessage || `${season.difficulty} · Kumpulkan semua koin!`, 26, 41);
+    }
+
+    function frame(timestamp) {
+      const delta = Math.min((timestamp - (lastFrame || timestamp)) / 1000, .04);
+      lastFrame = timestamp;
+      if (running) {
+        update(delta, timestamp);
+        draw();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function pressKey(key) {
+      const isNewPress = !heldKeys.has(key);
+      heldKeys.add(key);
+      if (key === "jump" && isNewPress && running && player.onGround) {
+        player.vy = -660;
+        player.onGround = false;
+      }
+    }
+
+    function releaseKey(key) {
+      heldKeys.delete(key);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const keyMap = {
+        ArrowLeft: "left", KeyA: "left",
+        ArrowRight: "right", KeyD: "right",
+        ArrowUp: "jump", Space: "jump", KeyW: "jump",
+      };
+      const key = keyMap[event.code];
+      if (!key) return;
+      event.preventDefault();
+      pressKey(key);
+    });
+
+    window.addEventListener("keyup", (event) => {
+      const keyMap = {
+        ArrowLeft: "left", KeyA: "left",
+        ArrowRight: "right", KeyD: "right",
+        ArrowUp: "jump", Space: "jump", KeyW: "jump",
+      };
+      const key = keyMap[event.code];
+      if (key) releaseKey(key);
+    });
+
+    window.addEventListener("blur", () => heldKeys.clear());
+    document.querySelectorAll("[data-key]").forEach((button) => {
+      const key = button.dataset.key;
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        pressKey(key);
+      });
+      button.addEventListener("pointerup", () => releaseKey(key));
+      button.addEventListener("pointercancel", () => releaseKey(key));
+      button.addEventListener("lostpointercapture", () => releaseKey(key));
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+    });
+
+    document.getElementById("retryButton").addEventListener("click", () => startMission(activeMission));
+    document.getElementById("overlayMenuButton").addEventListener("click", showMenu);
+    menuButton.addEventListener("click", showMenu);
+    document.getElementById("musicButton").addEventListener("click", () => {
+      setMusicEnabled(!musicEnabled);
+    });
+    renderCampaign();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
